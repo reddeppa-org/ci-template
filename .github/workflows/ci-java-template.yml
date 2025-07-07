@@ -17,9 +17,9 @@ on:
 
 permissions:
   # required for all workflows
-  security-events: write
+  security-events: none
   # only required for workflows in private repositories
-  actions: read
+  actions: none
   contents: read
 
 
