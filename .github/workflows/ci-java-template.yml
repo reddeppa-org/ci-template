@@ -15,23 +15,12 @@ on:
       SNYK_TOKEN:
         required: true
 
-#permissions: write-all
 permissions:
-  actions: write
-  attestations: write
-  checks: write
-  contents: write
-  deployments: write
-  discussions: write
-  issues: write
-  models: read
-  packages: write
-  pages: write
-  pull-requests: write
-  repository-projects: write
-  statuses: write
+  # required for all workflows
   security-events: write
-  id-token: write
+  # only required for workflows in private repositories
+  actions: read
+  contents: read
 
 
 jobs:
