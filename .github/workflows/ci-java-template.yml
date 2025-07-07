@@ -1,0 +1,82 @@
+name: Reusable CI/CD Wrapper
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: '11'
+      deploy-env:
+        required: false
+        type: string
+        default: 'Dev'
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions: write-all
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ inputs.java-version }}
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Simulate exposed secrets (for testing only)
+        run: |
+          echo "AWS_SECRET_ACCESS_KEY=AKIA1234567890EXAMPLE" >> exposed-secrets.txt
+          echo "gitlab_access_token=gh_werxy2f4u5nnnghkllllkmdkbfn" >> exposed-secrets.txt
+          cat exposed-secrets.txt
+
+      - name: Run tests
+        run: mvn test
+
+      - run: echo $JAVA_HOME
+
+  scan:
+    name: Snyk Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - uses: snyk/actions/setup@master
+
+      - uses: actions/setup-go@v1
+        with:
+          go-version: "1.13"
+
+      - name: Snyk test
+        run: snyk test --sarif-file-output=snyk.sarif --severity-threshold=medium --all-projects
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload SARIF file to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
+
+  deploy:
+    name: Deploy to ${{ inputs.deploy-env }} Environment
+    runs-on: ubuntu-latest
+    needs: scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy
+        run: echo "Deploying to ${{ inputs.deploy-env }} environment..."
