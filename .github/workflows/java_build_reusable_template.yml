@@ -39,6 +39,10 @@ on:
         required: false
         type: boolean
         default: true
+      custom_script:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -121,6 +125,7 @@ jobs:
             **/build/libs/*.jar
 
       # Placeholder for additional steps
-      - name: Additional Steps
-        if: false
-        run: echo "Add your custom steps here"
+      - name: Run Custom Script
+        if: ${{ inputs.custom_script != '' }}
+        run: ${{ inputs.custom_script }}
+      
