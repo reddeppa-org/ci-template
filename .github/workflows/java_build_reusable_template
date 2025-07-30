@@ -1,0 +1,121 @@
+name: Java Build Pipeline (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      use_maven:
+        required: false
+        type: boolean
+        default: false
+      use_gradle:
+        required: false
+        type: boolean
+        default: false
+      java_version:
+        required: false
+        type: string
+        default: '17'
+      java_distribution:
+        required: false
+        type: string
+        default: 'temurin'
+      application_name:
+        required: false
+        type: string
+        default: 'my-java-app'
+      branch:
+        required: false
+        type: string
+        default: ''
+      runner:
+        required: false
+        type: string
+        default: 'windows-latest'
+      environment:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      # Setup Java
+      - name: Set up JDK ${{ inputs.java_version }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: ${{ inputs.java_distribution }}
+          java-version: ${{ inputs.java_version }}
+
+      # Cache Maven dependencies
+      - name: Cache Maven packages
+        if: ${{ inputs.use_maven }}
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # Cache Gradle dependencies
+      - name: Cache Gradle packages
+        if: ${{ inputs.use_gradle }}
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Build with Maven
+      - name: Build with Maven
+        if: ${{ inputs.use_maven }}
+        run: mvn clean install --batch-mode
+
+      # Build with Gradle
+      - name: Build with Gradle
+        if: ${{ inputs.use_gradle }}
+        run: ./gradlew build
+
+      # Run Maven tests
+      - name: Run Maven Tests
+        if: ${{ inputs.use_maven }}
+        run: mvn test --batch-mode
+
+      # Run Gradle tests
+      - name: Run Gradle Tests
+        if: ${{ inputs.use_gradle }}
+        run: ./gradlew test
+
+      # Publish Maven package
+      - name: Publish Maven Package
+        if: ${{ inputs.use_maven }}
+        run: mvn package --batch-mode
+
+      # Publish Gradle package
+      - name: Publish Gradle Package
+        if: ${{ inputs.use_gradle }}
+        run: ./gradlew assemble
+
+      # Upload build artifacts
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.application_name }}-build-artifacts
+          path: |
+            **/target/*.jar
+            **/build/libs/*.jar
+
+      # Placeholder for additional steps
+      - name: Additional Steps
+        if: false
+        run: echo "Add your custom steps here"
