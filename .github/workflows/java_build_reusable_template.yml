@@ -113,6 +113,7 @@ jobs:
           name: ${{ inputs.application_name }}-build-artifacts
           path: |
             **/target/*.jar
+            **/target/*.war
             **/build/libs/*.jar
 
       # Placeholder for additional steps
