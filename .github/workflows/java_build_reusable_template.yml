@@ -34,7 +34,11 @@ on:
       environment:
         required: false
         type: string
-        default: ''
+        default: ''     
+      run_tests:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -88,12 +92,12 @@ jobs:
 
       # Run Maven tests
       - name: Run Maven Tests
-        if: ${{ inputs.use_maven }}
+        if: ${{ inputs.use_maven == true && inputs.run_tests == true }}
         run: mvn test --batch-mode
 
       # Run Gradle tests
       - name: Run Gradle Tests
-        if: ${{ inputs.use_gradle }}
+        if: ${{ inputs.use_gradle == true && inputs.run_tests == true }}
         run: ./gradlew test
 
       # Publish Maven package
