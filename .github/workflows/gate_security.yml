@@ -10,7 +10,7 @@ on:
         required: true
         type: string
     secrets:
-      github_token:
+      pat_token:
         required: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Validate CodeQL alerts (medium and above)
         run: |
           echo "Checking CodeQL alerts..."
-          curl -s -H "Authorization: Bearer ${{ secrets.github_token }}" \
+          curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
             "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/code-scanning/alerts?state=open" \
             | jq '[.[] | select(.rule.severity == "medium" or .rule.severity == "high" or .rule.severity == "critical")]' > codeql_alerts.json
 
@@ -35,7 +35,7 @@ jobs:
       - name: Validate Dependabot alerts
         run: |
           echo "Checking Dependabot alerts..."
-          curl -s -H "Authorization: Bearer ${{ secrets.github_token }}" \
+          curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
             "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/dependabot/alerts?state=open" \
             | jq '[.[]]' > dependabot_alerts.json
 
@@ -49,7 +49,7 @@ jobs:
       - name: Validate Secret Scanning alerts
         run: |
           echo "Checking secret scanning alerts..."
-          curl -s -H "Authorization: Bearer ${{ secrets.github_token }}" \
+          curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
             "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/secret-scanning/alerts?state=open" \
             | jq '[.[]]' > secret_alerts.json
 
