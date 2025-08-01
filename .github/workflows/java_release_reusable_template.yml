@@ -9,15 +9,14 @@ on:
       war_path:
         required: true
         type: string
+    secrets:
       remote_host:
-        required: true
-        type: string
+        required: true        
       remote_user:
-        required: true
-        type: string
+        required: true        
       remote_password:
         required: true
-        type: string
+        
 
 jobs:
   deploy:
@@ -26,27 +25,27 @@ jobs:
       - name: Copy WAR file to remote Windows server
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          $session = New-PSSession -ComputerName "${{ inputs.remote_host }}" -Credential $cred
-          Copy-Item "${{ inputs.war_path }}" -Destination "C:\deployment\${{ inputs.app_name }}.war" -ToSession $session
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          $session = New-PSSession -ComputerName "${{ secrets.remote_host }}" -Credential $cred
+          Copy-Item "${{ inputs.war_path }}" -Destination "C:\deployment\${{ secrets.app_name }}.war" -ToSession $session
           Remove-PSSession $session
 
       - name: Stop Tomcat service
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ secrets.remote_host }}" -Credential $cred -ScriptBlock {
             net stop Tomcat9
           }
 
       - name: Backup existing WAR and exploded folder
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ secrets.remote_host }}" -Credential $cred -ScriptBlock {
             $webapps = 'C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps'
             $backup = "$webapps\backup\${{ inputs.app_name }}_$(Get-Date -Format yyyyMMddHHmmss)"
             New-Item -ItemType Directory -Force -Path $backup
@@ -61,9 +60,9 @@ jobs:
       - name: Remove old deployment artifacts
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ secrets.remote_host }}" -Credential $cred -ScriptBlock {
             $webapps = 'C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps'
             Remove-Item "$webapps\${{ inputs.app_name }}.war" -Force -ErrorAction SilentlyContinue
             Remove-Item "$webapps\${{ inputs.app_name }}" -Recurse -Force -ErrorAction SilentlyContinue
@@ -72,17 +71,17 @@ jobs:
       - name: Deploy new WAR
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ secrets.remote_host }}" -Credential $cred -ScriptBlock {
             Copy-Item "C:\deployment\${{ inputs.app_name }}.war" "C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\${{ inputs.app_name }}.war"
           }
 
       - name: Start Tomcat service
         shell: pwsh
         run: |
-          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
-          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+          $secpasswd = ConvertTo-SecureString "${{ secrets.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ secrets.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ secrets.remote_host }}" -Credential $cred -ScriptBlock {
             net start Tomcat9
           }
