@@ -9,6 +9,9 @@ on:
       war_path:
         required: true
         type: string
+      env_name:
+        required: true
+        type: string
     secrets:
       remote_host:
         required: true        
@@ -21,6 +24,7 @@ on:
 jobs:
   deploy:
     runs-on: windows-latest
+    environment: ${{ inputs.env_name }}
     steps:
       - name: Copy WAR file to remote Windows server
         shell: pwsh
