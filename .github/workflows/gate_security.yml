@@ -64,13 +64,17 @@ jobs:
 
       - name: Validate Dependabot alerts
         run: |
-          echo "Checking Dependabot alerts..."
-          curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
-            "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/dependabot/alerts?state=open" \
-            | jq '[.[]]' > dependabot_alerts.json
+          echo "🔍 Checking Dependabot alerts using GitHub CLI..."
+
+          gh api "repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/dependabot/alerts" \
+            -H "Authorization: Bearer ${{ secrets.pat_token }}" \
+            -F state=open \
+            --paginate \
+            --jq '.' > dependabot_alerts.json
 
           count=$(jq length dependabot_alerts.json)
-          echo "Found $count open Dependabot alerts"
+          echo "📦 Found $count open Dependabot alerts"
+
           if [ "$count" -gt 0 ]; then
             echo "❌ Failing due to open Dependabot vulnerabilities"
             exit 1
