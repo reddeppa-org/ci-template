@@ -1,4 +1,4 @@
-name: Reusable Java Deployment to Windows Server
+name: Java WAR Deployment via PowerShell
 
 on:
   workflow_call:
@@ -12,9 +12,6 @@ on:
       remote_host:
         required: true
         type: string
-      port:
-        required: true
-        type: string
       remote_user:
         required: true
         type: string
@@ -25,76 +22,67 @@ on:
 jobs:
   deploy:
     runs-on: windows-latest
-
     steps:
-      # STEP 1: Copy WAR file to remote server
-      - name: Copy WAR file to remote server
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ inputs.remote_host }}
-          port: ${{ inputs.PORT }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          source: ${{ inputs.war_path }}
-          target: "C:/deployment"
+      - name: Copy WAR file to remote Windows server
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          $session = New-PSSession -ComputerName "${{ inputs.remote_host }}" -Credential $cred
+          Copy-Item "${{ inputs.war_path }}" -Destination "C:\deployment\${{ inputs.app_name }}.war" -ToSession $session
+          Remove-PSSession $session
 
-      # STEP 2: Stop Tomcat server
-      - name: Stop Tomcat Server
-        uses: microsoft/psremotewinrm-action@v1.1.0
-        with:
-          hostname: ${{ inputs.remote_host }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          command: |
+      - name: Stop Tomcat service
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
             net stop Tomcat9
+          }
 
-      # STEP 3: Backup existing WAR and folder
       - name: Backup existing WAR and exploded folder
-        uses: microsoft/psremotewinrm-action@v1.1.0
-        with:
-          hostname: ${{ inputs.remote_host }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          command: |
-            $timestamp = Get-Date -Format "yyyyMMddHHmmss"
-            $webapps = "C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps"
-            $backup = "$webapps\backup"
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+            $webapps = 'C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps'
+            $backup = "$webapps\backup\${{ inputs.app_name }}_$(Get-Date -Format yyyyMMddHHmmss)"
             New-Item -ItemType Directory -Force -Path $backup
             if (Test-Path "$webapps\${{ inputs.app_name }}.war") {
-              Copy-Item "$webapps\${{ inputs.app_name }}.war" "$backup\${{ inputs.app_name }}_$timestamp.war"
+              Copy-Item "$webapps\${{ inputs.app_name }}.war" "$backup\${{ inputs.app_name }}.war"
             }
             if (Test-Path "$webapps\${{ inputs.app_name }}") {
-              Copy-Item "$webapps\${{ inputs.app_name }}" "$backup\${{ inputs.app_name }}_$timestamp" -Recurse
+              Copy-Item "$webapps\${{ inputs.app_name }}" "$backup\${{ inputs.app_name }}" -Recurse
             }
+          }
 
-      # STEP 4: Remove existing deployment
-      - name: Remove old WAR and folder
-        uses: microsoft/psremotewinrm-action@v1.1.0
-        with:
-          hostname: ${{ inputs.remote_host }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          command: |
-            $webapps = "C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps"
+      - name: Remove old deployment artifacts
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
+            $webapps = 'C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps'
             Remove-Item "$webapps\${{ inputs.app_name }}.war" -Force -ErrorAction SilentlyContinue
             Remove-Item "$webapps\${{ inputs.app_name }}" -Recurse -Force -ErrorAction SilentlyContinue
+          }
 
-      # STEP 5: Deploy new WAR
-      - name: Deploy new WAR file
-        uses: microsoft/psremotewinrm-action@v1.1.0
-        with:
-          hostname: ${{ inputs.remote_host }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          command: |
+      - name: Deploy new WAR
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
             Copy-Item "C:\deployment\${{ inputs.app_name }}.war" "C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\${{ inputs.app_name }}.war"
+          }
 
-      # STEP 6: Start Tomcat server
-      - name: Start Tomcat Server
-        uses: microsoft/psremotewinrm-action@v1.1.0
-        with:
-          hostname: ${{ inputs.remote_host }}
-          username: ${{ inputs.remote_user }}
-          password: ${{ inputs.remote_password }}
-          command: |
+      - name: Start Tomcat service
+        shell: pwsh
+        run: |
+          $secpasswd = ConvertTo-SecureString "${{ inputs.remote_password }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ("${{ inputs.remote_user }}", $secpasswd)
+          Invoke-Command -ComputerName "${{ inputs.remote_host }}" -Credential $cred -ScriptBlock {
             net start Tomcat9
+          }
