@@ -21,9 +21,35 @@ jobs:
       - name: Validate CodeQL alerts (medium and above)
         run: |
           echo "Checking CodeQL alerts..."
-          curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
-            "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/code-scanning/alerts?state=open" \
-            | jq '[.[] | select(.rule.severity == "medium" or .rule.severity == "high" or .rule.severity == "critical")]' > codeql_alerts.json
+          page=1
+          per_page=100  # Max allowed by GitHub
+          all_alerts="[]"
+
+          while true; do
+            response=$(curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
+              "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/code-scanning/alerts?state=open&per_page=$per_page&page=$page")
+
+            # Validate it's an array
+            if ! echo "$response" | jq -e 'type == "array"' > /dev/null; then
+              echo "⚠️ Unexpected response. API error:"
+              echo "$response" | jq '.message // "No message available."' || echo "$response"
+              exit 1
+            fi
+
+            # Merge alerts into all_alerts
+            all_alerts=$(jq -s '.[0] + .[1]' <(echo "$all_alerts") <(echo "$response"))
+
+            # Stop if fewer than requested entries returned (end of pagination)
+            count=$(echo "$response" | jq 'length')
+            if [ "$count" -lt "$per_page" ]; then
+              break
+            fi
+
+            ((page++))
+          done
+
+          # Filter and write to file
+          echo "$all_alerts" | jq '[.[] | select(.rule.severity == "medium" or .rule.severity == "high" or .rule.severity == "critical")]' > codeql_alerts.json
 
           count=$(jq length codeql_alerts.json)
           echo "Found $count medium+ severity CodeQL alerts"
