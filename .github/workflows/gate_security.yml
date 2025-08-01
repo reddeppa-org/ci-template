@@ -19,6 +19,8 @@ jobs:
     steps:
 
       - name: Validate CodeQL alerts (medium and above)
+        env:
+         GH_TOKEN: ${{ github.token }}
         run: |
           echo "Checking CodeQL alerts with GitHub CLI..."
 
