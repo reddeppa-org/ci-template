@@ -20,35 +20,40 @@ jobs:
 
       - name: Validate CodeQL alerts (medium and above)
         run: |
-          echo "Checking CodeQL alerts..."
+          echo "Checking CodeQL alerts with GitHub CLI..."
+
+          repo="${{ inputs.repo_owner }}/${{ inputs.repo_name }}"
+          per_page=100
           page=1
-          per_page=100  # Max allowed by GitHub
           all_alerts="[]"
 
           while true; do
-            response=$(curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
-              "https://api.github.com/repos/${{ inputs.repo_owner }}/${{ inputs.repo_name }}/code-scanning/alerts?state=open&per_page=$per_page&page=$page")
+            response=$(gh api "repos/$repo/code-scanning/alerts" \
+              --jq '.' \
+              --paginate -H "Accept: application/vnd.github+json" \
+              -F state=open \
+              -F per_page=$per_page \
+              -F page=$page)
 
-            # Validate it's an array
+            # Ensure it's a JSON array
             if ! echo "$response" | jq -e 'type == "array"' > /dev/null; then
-              echo "⚠️ Unexpected response. API error:"
+              echo "⚠️ Invalid response. Here's the message:"
               echo "$response" | jq '.message // "No message available."' || echo "$response"
               exit 1
             fi
 
-            # Merge alerts into all_alerts
+            # Merge with previous alerts
             all_alerts=$(jq -s '.[0] + .[1]' <(echo "$all_alerts") <(echo "$response"))
 
-            # Stop if fewer than requested entries returned (end of pagination)
-            count=$(echo "$response" | jq 'length')
-            if [ "$count" -lt "$per_page" ]; then
+            # Break if last page
+            if [ "$(echo "$response" | jq 'length')" -lt "$per_page" ]; then
               break
             fi
 
             ((page++))
           done
 
-          # Filter and write to file
+          # Filter alerts with medium+ severity
           echo "$all_alerts" | jq '[.[] | select(.rule.severity == "medium" or .rule.severity == "high" or .rule.severity == "critical")]' > codeql_alerts.json
 
           count=$(jq length codeql_alerts.json)
