@@ -24,7 +24,7 @@ jobs:
         run: |
           echo "Checking CodeQL alerts with GitHub CLI..."
 
-          repo="${{ inputs.repo_owner }}/${{ inputs.repo_name }}"
+          repo="${{ inputs.repo_name }}"
           per_page=100
           page=1
           all_alerts="[]"
