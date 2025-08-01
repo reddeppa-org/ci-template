@@ -22,7 +22,7 @@ on:
         
 
 jobs:
-  deploy-${{ inputs.env_name }}:
+  deploy:
     runs-on: windows-latest
     environment: ${{ inputs.env_name }}
     steps:
