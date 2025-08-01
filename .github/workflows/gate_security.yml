@@ -22,9 +22,7 @@ jobs:
         env:
          GH_TOKEN: ${{ secrets.pat_token }}
         run: |
-          echo "Checking CodeQL alerts with GitHub CLI..."
-
-          #gh auth login --with-token < ${{ secrets.pat_token }}
+          echo "Checking CodeQL alerts with GitHub CLI..."          
 
           repo="${{ inputs.repo_name }}"
           per_page=100
@@ -81,6 +79,8 @@ jobs:
           fi
 
       - name: Validate Secret Scanning alerts
+        env:
+         GH_TOKEN: ${{ secrets.pat_token }}
         run: |
           echo "Checking secret scanning alerts..."
           curl -s -H "Authorization: Bearer ${{ secrets.pat_token }}" \
