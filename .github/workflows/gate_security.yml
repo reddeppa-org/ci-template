@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "🔍 Checking Dependabot alerts using GitHub CLI..."
 
-          gh api -X get "repos/$repo/dependabot/alerts" --paginate -H "Accept: application/vnd.github+json" -F state=open --jq '.' > dependabot_alerts.json
+          gh api -X get "repos/${{ inputs.repo_name }}/dependabot/alerts" --paginate -H "Accept: application/vnd.github+json" -F state=open --jq '.' > dependabot_alerts.json
 
           # gh api "repos/${{ inputs.repo_name }}/dependabot/alerts" \
           #   -H "Authorization: Bearer ${{ secrets.pat_token }}" \
