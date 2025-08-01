@@ -61,6 +61,8 @@ jobs:
           fi
 
       - name: Validate Dependabot alerts
+        env:
+         GH_TOKEN: ${{ secrets.pat_token }}
         run: |
           echo "🔍 Checking Dependabot alerts using GitHub CLI..."
 
