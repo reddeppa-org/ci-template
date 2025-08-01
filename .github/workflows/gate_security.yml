@@ -28,7 +28,7 @@ jobs:
           per_page=100
           page=1
           all_alerts="[]"
-
+          echo "repos/$repo/code-scanning/alerts"
           while true; do
             response=$(gh api "repos/$repo/code-scanning/alerts" \
               --jq '.' \
