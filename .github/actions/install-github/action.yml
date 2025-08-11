@@ -1,0 +1,31 @@
+name: 'Install Git'
+description: 'Installs a specific version of Git on the runner'
+inputs:
+  git-version:
+    description: 'Version of Git to install'
+    required: true
+    default: '2.44.0'
+runs:
+  using: "composite"
+  steps:
+    - name: Install Git (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $gitVersion = '${{ inputs.git-version }}'
+        $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v${gitVersion}.windows.1/Git-${gitVersion}-64-bit.exe"
+        Invoke-WebRequest -Uri $gitInstallerUrl -OutFile "$env:TEMP\GitSetup.exe"
+        Start-Process "$env:TEMP\GitSetup.exe" -ArgumentList "/VERYSILENT" -Wait
+
+    - name: Install Git (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git
+
+    - name: Install Git (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install git
