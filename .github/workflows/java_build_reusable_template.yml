@@ -54,6 +54,10 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
+      - uses: reddeppa-org/install-github@v1
+        with:
+          git-version: '2.44.0'
+
       # Setup Java
       - name: Set up JDK ${{ inputs.java_version }}
         uses: actions/setup-java@v3
