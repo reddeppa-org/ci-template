@@ -54,7 +54,7 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
-      - uses: reddeppa-org/install-github@v1
+      - uses: reddeppa-org/ci-template@v1
         with:
           git-version: '2.44.0'
 
