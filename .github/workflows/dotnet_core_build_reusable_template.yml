@@ -1,0 +1,39 @@
+name: Reusable Action Workflow
+
+on:
+  workflow_call:
+    inputs:
+      example_input:
+        description: 'An example input for the reusable action'
+        required: true
+        type: string
+      dotnet_version:
+        description: 'Version of .NET to use'
+        required: false
+        default: '8.0.x'
+        type: string
+      project_path:
+        description: 'Path to the .NET project or solution'
+        required: false
+        default: '.'
+        type: string
+
+jobs:
+  build_dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ inputs.project_path }}
+
+      - name: Build
+        run: dotnet build ${{ inputs.project_path }} --configuration Release --no-restore
+
+  
