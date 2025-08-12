@@ -18,48 +18,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Validate CodeQL alerts (medium and above)
-        env:
-         GH_TOKEN: ${{ secrets.pat_token }}
-        run: |
-          echo "Checking CodeQL alerts with GitHub CLI..."          
+      # - name: Validate CodeQL alerts (medium and above)
+      #   env:
+      #    GH_TOKEN: ${{ secrets.pat_token }}
+      #   run: |
+      #     echo "Checking CodeQL alerts with GitHub CLI..."          
 
-          repo="${{ inputs.repo_name }}"
-          per_page=100
-          page=1
-          all_alerts="[]"
-          echo "repos/$repo/code-scanning/alerts"
-          while true; do
-            response=$(gh api -X get "repos/$repo/code-scanning/alerts" --paginate -H "Accept: application/vnd.github+json" -F state=open -F per_page=100 -F page=1 --jq '.')
+      #     repo="${{ inputs.repo_name }}"
+      #     per_page=100
+      #     page=1
+      #     all_alerts="[]"
+      #     echo "repos/$repo/code-scanning/alerts"
+      #     while true; do
+      #       response=$(gh api -X get "repos/$repo/code-scanning/alerts" --paginate -H "Accept: application/vnd.github+json" -F state=open -F per_page=100 -F page=1 --jq '.')
 
-            # Ensure it's a JSON array
-            if ! echo "$response" | jq -e 'type == "array"' > /dev/null; then
-              echo "⚠️ Invalid response. Here's the message:"
-              echo "$response" | jq '.message // "No message available."' || echo "$response"
-              exit 1
-            fi
+      #       # Ensure it's a JSON array
+      #       if ! echo "$response" | jq -e 'type == "array"' > /dev/null; then
+      #         echo "⚠️ Invalid response. Here's the message:"
+      #         echo "$response" | jq '.message // "No message available."' || echo "$response"
+      #         exit 1
+      #       fi
 
-            # Merge with previous alerts
-            all_alerts=$(jq -s '.[0] + .[1]' <(echo "$all_alerts") <(echo "$response"))
+      #       # Merge with previous alerts
+      #       all_alerts=$(jq -s '.[0] + .[1]' <(echo "$all_alerts") <(echo "$response"))
 
-            # Break if last page
-            if [ "$(echo "$response" | jq 'length')" -lt "$per_page" ]; then
-              break
-            fi
+      #       # Break if last page
+      #       if [ "$(echo "$response" | jq 'length')" -lt "$per_page" ]; then
+      #         break
+      #       fi
 
-            ((page++))
-          done
+      #       ((page++))
+      #     done
 
-          # Filter alerts with medium+ severity
-          echo "$all_alerts" | jq '[.[] | select(.rule.security_severity_level == "medium" or .rule.security_severity_level == "high" or .rule.security_severity_level == "critical")]' > codeql_alerts.json
+      #     # Filter alerts with medium+ severity
+      #     echo "$all_alerts" | jq '[.[] | select(.rule.security_severity_level == "medium" or .rule.security_severity_level == "high" or .rule.security_severity_level == "critical")]' > codeql_alerts.json
 
-          count=$(jq length codeql_alerts.json)
-          echo "Found $count medium+ severity CodeQL alerts"
-          if [ "$count" -gt 0 ]; then
-            echo "❌ Failing due to CodeQL vulnerabilities"
-            exit 1
-          fi
+      #     count=$(jq length codeql_alerts.json)
+      #     echo "Found $count medium+ severity CodeQL alerts"
+      #     if [ "$count" -gt 0 ]; then
+      #       echo "❌ Failing due to CodeQL vulnerabilities"
+      #       exit 1
+      #     fi
 
+      - name: CodeQL Scan
+        uses: reddeppa-org/codeql-vuln-check-action@v1
+        with:
+          repo_owner: "${{ github.repository_owner }}"
+          repo_name: "${{ github.repository }}"        
+          pat_token: ${{ secrets.PAT_TOKEN }} 
+      
       - name: Validate Dependabot alerts
         env:
          GH_TOKEN: ${{ secrets.pat_token }}
