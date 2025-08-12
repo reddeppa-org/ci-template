@@ -82,7 +82,7 @@ jobs:
             exit 1
           fi
 
-      - name: Dotnet Build
+      - name: Secret Scan
         uses: reddeppa-org/secrets-vuln-check-action@v1.1
         with:
           repo_owner: "${{ github.repository_owner }}"
