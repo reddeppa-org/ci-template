@@ -8,8 +8,22 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Git (Windows)
+    - name: Check Git Version (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $gitVersion = '${{ inputs.git-version }}'
+        $installed = $false
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+          $current = (git --version) -replace 'git version ', ''
+          if ($current -eq $gitVersion) { $installed = $true }
+        }
+        echo "Git installed: $installed"
+        echo "current_git_version=$current" >> $env:GITHUB_ENV
+        echo "required_git_version=$gitVersion" >> $env:GITHUB_ENV
+
+    - name: Install Git (Windows)
+      if: runner.os == 'Windows' && env.current_git_version != env.required_git_version
       shell: pwsh
       run: |
         $gitVersion = '${{ inputs.git-version }}'
@@ -17,15 +31,31 @@ runs:
         Invoke-WebRequest -Uri $gitInstallerUrl -OutFile "$env:TEMP\GitSetup.exe"
         Start-Process "$env:TEMP\GitSetup.exe" -ArgumentList "/VERYSILENT" -Wait
 
-    - name: Install Git (Linux)
+    - name: Check Git Version (Linux)
       if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        git_version=$(git --version 2>/dev/null | awk '{print $3}')
+        echo "current_git_version=$git_version" >> $GITHUB_ENV
+        echo "required_git_version=${{ inputs.git-version }}" >> $GITHUB_ENV
+
+    - name: Install Git (Linux)
+      if: runner.os == 'Linux' && env.current_git_version != env.required_git_version
       shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y git
 
-    - name: Install Git (macOS)
+    - name: Check Git Version (macOS)
       if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        git_version=$(git --version 2>/dev/null | awk '{print $3}')
+        echo "current_git_version=$git_version" >> $GITHUB_ENV
+        echo "required_git_version=${{ inputs.git-version }}" >> $GITHUB_ENV
+
+    - name: Install Git (macOS)
+      if: runner.os == 'macOS' && env.current_git_version != env.required_git_version
       shell: bash
       run: |
         brew install git
